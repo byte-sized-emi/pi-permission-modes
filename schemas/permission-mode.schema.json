@@ -71,7 +71,8 @@
           "additionalProperties": false,
           "properties": {
             "allowedDomains": { "type": "array", "items": { "type": "string" } },
-            "deniedDomains": { "type": "array", "items": { "type": "string" } }
+            "deniedDomains": { "type": "array", "items": { "type": "string" } },
+            "allowAllUnixSockets": { "type": "boolean", "description": "Allow all Unix sockets (disables AF_UNIX blocking). Needed for tools that talk to a local daemon over a Unix socket, e.g. nix (daemon), docker, podman. Loosens the sandbox; project (tighten-only) configs may only set it to false." }
           }
         }
       }

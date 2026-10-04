@@ -66,7 +66,15 @@ export const SURFACES: Surface[] = [
 ];
 
 /** Surfaces that resolve against a filesystem path (subject to the `path` gate). */
-export const FILE_SURFACES: Surface[] = ["read", "write", "edit", "grep", "find", "ls", "bash"];
+export const FILE_SURFACES: Surface[] = [
+  "read",
+  "write",
+  "edit",
+  "grep",
+  "find",
+  "ls",
+  "bash",
+];
 
 /** Footer label colors (semantic theme tokens, no icons). */
 export type ModeColor = "muted" | "mdLink" | "accent" | "error";
@@ -88,7 +96,11 @@ export interface SandboxProfile {
    * does a session block. Project configs may only remove entries.
    */
   allowRead?: string[];
-  network?: { allowedDomains?: string[]; deniedDomains?: string[] };
+  network?: {
+    allowedDomains?: string[];
+    deniedDomains?: string[];
+    allowAllUnixSockets?: boolean;
+  };
   /**
    * Ask the user live when bash tries to reach a host outside the allowlist
    * (the connection waits while they decide). Defaults to true; false denies

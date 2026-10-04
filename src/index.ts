@@ -644,6 +644,7 @@ export default async function (pi: ExtensionAPI) {
           `Scratch dir: ${scratchDir ?? "(none)"}`,
           `Network: ${net.open ? "OPEN for this session (alt+n)" : "filtered (alt+n)"}`,
           `Network allowed: ${c.network?.allowedDomains?.join(", ") || "(none)"}`,
+          `Unix sockets: ${c.network?.allowAllUnixSockets ? "allowed" : "blocked (seccomp/seatbelt)"}`,
           `Session grants: ${net.grants().join(", ") || "(none)"}`,
           `Deny read:  ${c.filesystem?.denyRead?.join(", ") || "(none)"}`,
           ...(c.filesystem.allowRead?.length ? [`Allow read: ${c.filesystem.allowRead.join(", ")} (inside the denied paths)`] : []),

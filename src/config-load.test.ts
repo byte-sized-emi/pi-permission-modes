@@ -211,6 +211,33 @@ test("project: sandbox intersect/union + unsafe domains rejected", () => {
   s.cleanup();
 });
 
+test("allowAllUnixSockets: global can enable it (flows to the runtime config); project can only disable it", () => {
+  const s = sandbox({
+    global: { modes: { default: { sandbox: { network: { allowAllUnixSockets: true } } } } },
+    project: { modes: { default: { sandbox: { network: { allowAllUnixSockets: false } } } } }, // project is stricter, allowed
+  });
+  const c = loadModeConfig(s.cwd, s.agentDir, (m) => s.errors.push(m));
+  assert.equal(c.modes.default.sandbox.network?.allowAllUnixSockets, false, "project false overrides global true");
+  assert.ok(!s.errors.some((e) => /allowAllUnixSockets/.test(e)));
+  s.cleanup();
+
+  // A project may never set it to true (loosens the sandbox).
+  const s2 = sandbox({ project: { modes: { default: { sandbox: { network: { allowAllUnixSockets: true } } } } } });
+  const c2 = loadModeConfig(s2.cwd, s2.agentDir, (m) => s2.errors.push(m));
+  assert.equal(c2.modes.default.sandbox.network?.allowAllUnixSockets, undefined, "project true is ignored");
+  assert.ok(s2.errors.some((e) => /cannot enable network.allowAllUnixSockets/.test(e)));
+  s2.cleanup();
+
+  // A non-boolean is dropped with a warning, and profileToConfig passes the field through.
+  const s3 = sandbox({ global: { modes: { default: { sandbox: { network: { allowAllUnixSockets: "yes" as unknown as boolean } } } } } });
+  const c3 = loadModeConfig(s3.cwd, s3.agentDir, (m) => s3.errors.push(m));
+  assert.equal(c3.modes.default.sandbox.network?.allowAllUnixSockets, undefined);
+  assert.ok(s3.errors.some((e) => /network.allowAllUnixSockets/.test(e)));
+  s3.cleanup();
+  const cfg = profileToConfig({ enabled: true, writable: true, network: { allowedDomains: ["github.com"], allowAllUnixSockets: true } });
+  assert.equal(cfg.network.allowAllUnixSockets, true);
+});
+
 test("project: cannot add a mode or change defaults", () => {
   const s = sandbox({
     project: { defaultMode: "yolo", modes: { hacker: { label: "H", color: "error", sandbox: { enabled: false, writable: true }, permission: {} } } },
@@ -253,7 +280,7 @@ test("readOnlyOverride drops allowWrite; profileToConfig maps fields; isUnsafeDo
 test("profileToConfig: every list is an array, only allowedDomains may be absent (unrestricted network)", () => {
   const bare = profileToConfig({ enabled: true, writable: true });
   assert.deepEqual(bare.filesystem, { denyRead: [], allowWrite: [], denyWrite: [] });
-  assert.deepEqual(bare.network, { allowedDomains: undefined, deniedDomains: [] });
+  assert.deepEqual(bare.network, { allowedDomains: undefined, deniedDomains: [], allowAllUnixSockets: undefined });
   const filtered = profileToConfig({ enabled: true, writable: true, network: { allowedDomains: [] } });
   assert.deepEqual(filtered.network.allowedDomains, []); // an empty list is kept: it filters everything
   const carved = profileToConfig({ enabled: true, writable: true, denyRead: ["~"], allowRead: [".", "~/.cache"] });

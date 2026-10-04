@@ -115,6 +115,9 @@ export function sandboxAwarenessPrompt(mode: ModeDef, opts: AwarenessOptions): s
         : `${scope} A request to any other host pauses while the user is asked to allow it — if they approve, simply retry the command. To get domains approved up front (e.g. before an install that hits several hosts), call the request_network_access tool.`,
     );
   }
+  if (sb.network?.allowAllUnixSockets) {
+    lines.push("- Unix sockets are allowed (network.allowAllUnixSockets): local daemon clients (nix, docker, …) work — the sandbox does not block AF_UNIX.");
+  }
   lines.push(
     "- Background processes do not outlive the command: each bash call runs in its own sandbox that is torn down when the command exits, so `&`, `nohup`, and `setsid` cannot start anything long-running. Run long tasks in the foreground with an adequate timeout, or ask the user.",
     "- Commands beyond these boundaries (out-of-project paths, sudo/doas) are fine to issue: the user is asked for permission automatically, and approved commands run outside the sandbox.",

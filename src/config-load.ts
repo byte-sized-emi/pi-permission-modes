@@ -115,6 +115,10 @@ function sanitizeSandbox(raw: unknown, where: string, onError: OnError): Partial
           if (isStringArray(v.deniedDomains)) net.deniedDomains = v.deniedDomains;
           else drop("network.deniedDomains");
         }
+        if (v.allowAllUnixSockets !== undefined) {
+          if (typeof v.allowAllUnixSockets === "boolean") net.allowAllUnixSockets = v.allowAllUnixSockets;
+          else drop("network.allowAllUnixSockets");
+        }
         out.network = net;
         break;
       }
@@ -177,7 +181,7 @@ export const FALLBACK_CONFIG: PermissionModeConfig = {
  */
 export interface SandboxConfig {
   enabled?: boolean;
-  network: { allowedDomains?: string[]; deniedDomains: string[] };
+  network: { allowedDomains?: string[]; deniedDomains: string[]; allowAllUnixSockets?: boolean };
   filesystem: { denyRead: string[]; allowRead?: string[]; allowWrite: string[]; denyWrite: string[] };
 }
 
@@ -185,7 +189,11 @@ export interface SandboxConfig {
 export function profileToConfig(p: SandboxProfile): SandboxConfig {
   return {
     enabled: p.enabled,
-    network: { allowedDomains: p.network?.allowedDomains, deniedDomains: p.network?.deniedDomains ?? [] },
+    network: {
+      allowedDomains: p.network?.allowedDomains,
+      deniedDomains: p.network?.deniedDomains ?? [],
+      allowAllUnixSockets: p.network?.allowAllUnixSockets,
+    },
     filesystem: {
       denyRead: p.denyRead ?? [],
       ...(p.allowRead ? { allowRead: p.allowRead } : {}),
@@ -413,6 +421,13 @@ function tightenSandbox(base: SandboxProfile, rawOver: unknown, where: string, o
     }
     if (over.network.deniedDomains !== undefined) {
       result.network!.deniedDomains = union(base.network?.deniedDomains, over.network.deniedDomains);
+    }
+    // allowAllUnixSockets=true loosens the sandbox (AF_UNIX unblocked), so a
+    // project may only ever set it to false (stricter: keep sockets blocked).
+    if (over.network.allowAllUnixSockets === true) {
+      onError(`permission-mode: project config cannot enable network.allowAllUnixSockets (loosens the sandbox); ignoring`);
+    } else if (over.network.allowAllUnixSockets === false) {
+      result.network!.allowAllUnixSockets = false;
     }
   }
   return result;
